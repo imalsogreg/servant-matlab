@@ -2,7 +2,6 @@ module Servant.Matlab.Internal
   ( MatlabGenerator
   , CommonGeneratorOptions(..)
   , defCommonGeneratorOptions
-  , devCommonGeneratorOptions
   , AjaxReq
   , matlabSegments
   , segmentToStr
@@ -77,12 +76,8 @@ defCommonGeneratorOptions = CommonGeneratorOptions
     functionNameBuilder = camelCase
   , requestBody = "body"
   , moduleName = ""
-  , urlPrefix = "http://cbaas.org/"
+  , urlPrefix = ""
   }
-
-devCommonGeneratorOptions :: CommonGeneratorOptions
-devCommonGeneratorOptions =
-  defCommonGeneratorOptions {urlPrefix = "http://localhost:8000/"}
 
 -- | Attempts to reduce the function name provided to that allowed by @'Foreign'@.
 --
