@@ -42,9 +42,9 @@ import           Servant.Foreign
 type AjaxReq = Req
 
 -- A 'MatlabGenerator' just takes the data found in the API type
--- for each endpoint and generates Javascript code in a String. Several
--- generators are available in this package.
-type MatlabGenerator = [Req] -> String
+-- for each ndpoint and generates a filename and Matlab code in a String.
+-- Several generators are available in this package.
+type MatlabGenerator = [Req] -> [(String, String)]
 
 -- | This structure is used by specific implementations to let you
 -- customize the output
@@ -75,8 +75,8 @@ defCommonGeneratorOptions = CommonGeneratorOptions
   {
     functionNameBuilder = camelCase
   , requestBody = "body"
-  , moduleName = ""
-  , urlPrefix = ""
+  , moduleName  = ""
+  , urlPrefix   = ""
   }
 
 -- | Attempts to reduce the function name provided to that allowed by @'Foreign'@.

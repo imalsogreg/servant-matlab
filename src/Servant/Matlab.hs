@@ -78,9 +78,12 @@ module Servant.Matlab
   , GenerateList(..)
   ) where
 
+import           Data.Bool               (bool)
 import           Data.Proxy
 import           Servant.Foreign
 import           Servant.Matlab.Internal
+import           System.Directory        (createDirectory)
+import           System.FilePath         ((</>))
 
 -- | Generate the data necessary to generate javascript code
 --   for all the endpoints of an API, as ':<|>'-separated values
@@ -96,7 +99,7 @@ matlabForAPI :: (HasForeign api, GenerateList (Foreign api))
                 -- ^ proxy for your API type
              -> MatlabGenerator
                 -- ^ matlab code generator to use
-             -> String
+             -> [(String, String)]
                 -- ^ a string that you can embed in your pages or write to a file
 matlabForAPI p gen = gen (listFromAPI p)
 
@@ -111,7 +114,8 @@ writeMatlabForAPI :: (HasForeign api, GenerateList (Foreign api))
                      -> FilePath
                         -- ^ path to the file you want to write the resulting matlab code into
               -> IO ()
-writeMatlabForAPI p gen fp = writeFile fp (matlabForAPI p gen)
+writeMatlabForAPI p gen fp = do
+  mapM_ (\(f,c) -> writeFile (fp </> f) c) (matlabForAPI p gen)
 
 -- | Utility class used by 'matlabForAPI' which computes
 --   the data needed to generate a function for each endpoint

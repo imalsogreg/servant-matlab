@@ -7,23 +7,32 @@ import           Data.Monoid
 import           Servant.API (Get(..),Post(..),Put(..),Delete(..))
 import           Servant.Foreign
 import           Servant.Matlab.Internal
+import           System.FilePath ((</>))
 
 -- | Generate matlab functions to make REST requests
 --   to your API, using webread and webwrite. Uses 'defCommonGeneratorOptions'
 --   for the 'CommonGeneratorOptions'.
 matlabFunctions :: MatlabGenerator
-matlabFunctions = concatMap generateMatlabFunctions
+matlabFunctions = map generateMatlabFunctions
 
 -- | Generate matlab functions to make REST requests
 --   to your API, using webread and webwrite. Lets you specify your
 --   own options.
 matlabFunctionsWith :: CommonGeneratorOptions -> MatlabGenerator
 matlabFunctionsWith opts =
-  concatMap $ generateMatlabFunctionWith opts
+  map (generateMatlabPairWith opts)
 
 -- | matlab codegen using webread/webwrite using default generation options
-generateMatlabFunctions :: AjaxReq -> String
-generateMatlabFunctions = generateMatlabFunctionWith defCommonGeneratorOptions
+generateMatlabFunctions :: AjaxReq -> (String, String)
+generateMatlabFunctions = generateMatlabPairWith defCommonGeneratorOptions
+
+generateMatlabPairWith :: CommonGeneratorOptions -> AjaxReq -> (String,String)
+generateMatlabPairWith opts req = (n,f)
+  where n = generateMatlabFileNameWith opts req
+        f = generateMatlabFunctionWith opts req
+
+generateMatlabFileNameWith :: CommonGeneratorOptions -> AjaxReq -> String
+generateMatlabFileNameWith opts req = functionName opts req <> ".m"
 
 -- | matlab codegen using webread/webwrite
 generateMatlabFunctionWith :: CommonGeneratorOptions -> AjaxReq -> String
@@ -98,11 +107,7 @@ generateMatlabFunctionWith opts req
         headerStr h = "  opts('" ++ headerArgName h ++ "\', "
                    <> " '" ++ toMatlabHeader h ++ "');"
 
-        namespace = if null (moduleName opts)
-                       then ""
-                       else moduleName opts <> "."
-
-        fname = namespace <> functionNameBuilder opts (req ^. funcName)
+        fname = functionName opts req
 
         url = if url' == "'" then "'/'" else url'
         url' = "'"
@@ -121,6 +126,10 @@ generateMatlabFunctionWith opts req
                             <> headerArgName h <> ", "
                             <> toMatlabHeader h  <> "');\n"
 
+
+functionName :: CommonGeneratorOptions -> AjaxReq -> String
+functionName opts req = namespace <> functionNameBuilder opts (req ^. funcName)
+  where namespace = bool (moduleName opts <> ".") "" (null $ moduleName opts)
 
 buildAndSendStream :: String
 buildAndSendStream = ("\n" <>) . unlines . map ("  " <>) $
