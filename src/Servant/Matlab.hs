@@ -100,7 +100,7 @@ matlabForAPI :: (HasForeign api, GenerateList (Foreign api))
              -> MatlabGenerator
                 -- ^ matlab code generator to use
              -> [(String, String)]
-                -- ^ a string that you can embed in your pages or write to a file
+                -- ^ A list of filenames and their contents - the matlab library
 matlabForAPI p gen = gen (listFromAPI p)
 
 -- | Directly generate all the javascript functions for your API

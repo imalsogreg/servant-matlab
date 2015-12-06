@@ -36,31 +36,15 @@ generateMatlabFileNameWith opts req = functionName opts req <> ".m"
 
 -- | matlab codegen using webread/webwrite
 generateMatlabFunctionWith :: CommonGeneratorOptions -> AjaxReq -> String
-generateMatlabFunctionWith opts req
-  -- In GET and POST requests, use matlab's webread/webwrite
-  | req ^. reqMethod  == "GET" =
-    "function r = " <> fname <> "(" <> argsStr <> ")\n"
-    <> "  opts = weboptions();"
-    <> unlines (map weboptionHeader (req ^. reqHeaders ))
-    <> "\n"
-    <> "  r = webread(" <> url <> ", opts);\n"
-    <> "end\n\n"
+generateMatlabFunctionWith opts req =
+    "function r = " <> fname <> "(url, key, " <> argsStr <> ")\n"
 
-  | req ^. reqMethod == "POST" =
-       "function r = " <> fname <> "(" <> argsStr <> ")\n"
-    <> "  opts = weboptions();"
-    <> unlines (map weboptionHeader (req ^. reqHeaders))
-    <> "\n"
-    <> "  r = webwrite(" <> url <> dataBody <> ", opts);\nend\n\n"
-
-  | req ^. reqMethod == "PUT" =
-    "function r = " <> fname <> "(" <> argsStr <> ")\n"
-
-     <> "  u = java.net.URL(" <> url <> ");\n"
+     <> "  u = java.net.URL(url + '" <> url <> "');\n"
      <> "  conn = u.openConnection();\n"
      <>    unlines (map headerStr (req ^. reqHeaders))
+     <>    "conn.setRequestProperty('Authorization', key)"
 
-           -- This sends the PUT request's body
+           -- This sends the request's body
      <>    bool "" buildAndSendStream (req ^. reqBody)
 
            -- This gives a varabiable named `str` with the
@@ -68,20 +52,6 @@ generateMatlabFunctionWith opts req
      <>    buildAndEatStream
      <> "  r = parse_json(str)\n"
      <> "end\n\n"
-
-  | req ^. reqMethod == "DELETE" =
-    "function r = " <> fname <> "(" <> argsStr <> ")\n"
-
-     <> "  u = java.net.URL(" <> url <> ");\n"
-     <> "  conn = u.openConnection();\n"
-     <>    unlines (map headerStr (req ^. reqHeaders))
-     <>    buildAndEatStream -- This gives a varabiable named `str` with the
-                             -- response body
-     <> "  r = parse_json(str)\n"
-     <> "end\n\n"
-  | otherwise = "% stub for function" <> fname
-                <> " with unrecognized request method " <> (req ^. reqMethod)
-                <> "\n"
 
   where argsStr = intercalate ", " args
         args = captures
@@ -121,10 +91,6 @@ generateMatlabFunctionWith opts req
         queryArgs = if null queryparams
                       then ""
                       else " + '?" ++ matlabParams queryparams
-
-        weboptionHeader h = "  weboptions('"
-                            <> headerArgName h <> ", "
-                            <> toMatlabHeader h  <> "');\n"
 
 
 functionName :: CommonGeneratorOptions -> AjaxReq -> String
