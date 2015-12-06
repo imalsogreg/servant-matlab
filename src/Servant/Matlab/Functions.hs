@@ -39,10 +39,10 @@ generateMatlabFunctionWith :: CommonGeneratorOptions -> AjaxReq -> String
 generateMatlabFunctionWith opts req =
     "function r = " <> fname <> "(url, key, " <> argsStr <> ")\n"
 
-     <> "  u = java.net.URL(url + '" <> url <> "');\n"
+     <> "  u = java.net.URL([url + " <> url <> ")];\n"
      <> "  conn = u.openConnection();\n"
      <>    unlines (map headerStr (req ^. reqHeaders))
-     <>    "conn.setRequestProperty('Authorization', key)"
+     <>    "  conn.setRequestProperty('Authorization', key)"
 
            -- This sends the request's body
      <>    bool "" buildAndSendStream (req ^. reqBody)
@@ -53,7 +53,7 @@ generateMatlabFunctionWith opts req =
      <> "  r = parse_json(str)\n"
      <> "end\n\n"
 
-  where argsStr = intercalate ", " args
+  where argsStr = intercalate ", " ("url" : "key" : args)
         args = captures
             ++ map (view argName) queryparams
             ++ body
