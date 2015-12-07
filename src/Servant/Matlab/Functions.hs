@@ -39,7 +39,7 @@ generateMatlabFunctionWith :: CommonGeneratorOptions -> AjaxReq -> String
 generateMatlabFunctionWith opts req =
     "function r = " <> fname <> "(" <> argsStr <> ")\n"
 
-     <> "  u = java.net.URL([url + " <> url <> ")];\n"
+     <> "  u = java.net.URL([url, " <> url <> "]);\n"
      <> "  conn = u.openConnection();\n"
      <>    unlines (map headerStr (req ^. reqHeaders))
      <>    "  conn.setRequestProperty('Authorization', key)"
@@ -113,11 +113,12 @@ buildAndEatStream :: String
 buildAndEatStream = ("\n" <>) . unlines . map ("  " <>) $
   ["in = java.io.BufferedReader ..."
   ,"     (java.io.InputStreamReader (conn.getInputStream ()));"
+  ,"str = [];"
   ,"doneReading = false;"
   ,"while (~doneReading)"
   ,"  newStr = in.readLine();"
-  ,"  str    = [str, newStr]"
-  ,"  if (isempty(str))"
+  ,"  str    = [str, newStr];"
+  ,"  if (isempty(newStr))"
   ,"    doneReading = true;"
   ,"  end"
   ,"end\n"
