@@ -37,7 +37,7 @@ generateMatlabFileNameWith opts req = functionName opts req <> ".m"
 -- | matlab codegen using webread/webwrite
 generateMatlabFunctionWith :: CommonGeneratorOptions -> AjaxReq -> String
 generateMatlabFunctionWith opts req =
-    "function r = " <> fname <> "(url, key, " <> argsStr <> ")\n"
+    "function r = " <> fname <> "(" <> argsStr <> ")\n"
 
      <> "  u = java.net.URL([url + " <> url <> ")];\n"
      <> "  conn = u.openConnection();\n"
