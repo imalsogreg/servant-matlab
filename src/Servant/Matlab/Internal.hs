@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Servant.Matlab.Internal
   ( MatlabGenerator
   , CommonGeneratorOptions(..)
@@ -8,7 +10,6 @@ module Servant.Matlab.Internal
   , segmentTypeToStr
   , matlabParams
   , matlabGParams
-  , matlabMParams
   , paramToStr
   , toValidFunctionName
   , toMatlabHeader
@@ -36,6 +37,7 @@ import qualified Data.CharSet as Set
 import qualified Data.CharSet.Unicode.Category as Set
 import           Data.List
 import           Data.Monoid
+import           Data.Text (Text)
 import qualified Data.Text as T
 import           Servant.Foreign
 
@@ -50,13 +52,13 @@ type MatlabGenerator = [Req] -> [(String, String)]
 -- customize the output
 data CommonGeneratorOptions = CommonGeneratorOptions
   {
-    functionNameBuilder :: FunctionName -> String
+    functionNameBuilder :: FunctionName -> Text
     -- ^ function generating function names
-  , requestBody :: String
+  , requestBody :: Text
     -- ^ name used when a user want to send the request body (to let you redefine it)
-  , moduleName :: String
+  , moduleName :: Text
     -- ^ namespace on which we define the foreign function (empty mean local var)
-  , urlPrefix :: String
+  , urlPrefix :: Text
     -- ^ a prefix we should add to the Url in the codegen
   }
 
@@ -85,8 +87,10 @@ defCommonGeneratorOptions = CommonGeneratorOptions
 -- Couldn't work out how to handle zero-width characters.
 --
 -- @TODO: specify better default function name, or throw error?
-toValidFunctionName :: String -> String
-toValidFunctionName (x:xs) = [setFirstChar x] <> filter remainder xs
+toValidFunctionName :: Text -> Text
+toValidFunctionName t = case T.uncons t of
+  Just (x,xs) -> setFirstChar x `T.cons` T.filter remainder xs
+  Nothing     -> "_"
   where
     setFirstChar c = if firstChar c then c else '_'
     firstChar c = prefixOK c || any (Set.member c) firstLetterOK
@@ -105,60 +109,55 @@ toValidFunctionName (x:xs) = [setFirstChar x] <> filter remainder xs
                   , Set.spacingCombiningMark
                   , Set.decimalNumber
                   , Set.connectorPunctuation ]
-toValidFunctionName [] = "_"
 
-toMatlabHeader :: HeaderArg -> String
-toMatlabHeader (HeaderArg n)          = toValidFunctionName ("header" <> n)
-toMatlabHeader (ReplaceHeaderArg n p)
-  | pn `isPrefixOf` p = pv <> " + \"" <> rp <> "\""
-  | pn `isSuffixOf` p = "\"" <> rp <> "\" + " <> pv
-  | pn `isInfixOf` p  = "\"" <> (replace pn ("\" + " <> pv <> " + \"") p)
+toMatlabHeader :: HeaderArg -> Text
+toMatlabHeader (HeaderArg (n,_))   = toValidFunctionName ("header" <> n)
+toMatlabHeader (ReplaceHeaderArg (n,_) p)
+  | pn `T.isPrefixOf` p = pv <> " + \"" <> rp <> "\""
+  | pn `T.isSuffixOf` p = "\"" <> rp <> "\" + " <> pv
+  | pn `T.isInfixOf` p  = "\"" <> (T.replace pn ("\" + " <> pv <> " + \"") p)
                              <> "\""
   | otherwise         = p
   where
     pv = toValidFunctionName ("header" <> n)
     pn = "{" <> n <> "}"
-    rp = replace pn "" p
+    rp = T.replace pn "" p
     -- Use replace method from Data.Text
-    replace old new = T.unpack
-                    . T.replace (T.pack old) (T.pack new)
-                    . T.pack
+    -- replace old new = T.unpack
+    --                 . T.replace (T.pack old) (T.pack new)
+    --                 . T.pack
 
-matlabSegments :: [Segment] -> String
+matlabSegments :: [Segment] -> Text
 matlabSegments []  = ""
-matlabSegments [x] = "/" ++ segmentToStr x False
-matlabSegments (x:xs) = "/" ++ segmentToStr x True ++ matlabSegments xs
+matlabSegments [x] = "/" <> segmentToStr x False
+matlabSegments (x:xs) = "/" <> segmentToStr x True <> matlabSegments xs
 
-segmentToStr :: Segment -> Bool -> String
-segmentToStr (Segment st ms) notTheEnd =
-  segmentTypeToStr st ++ matlabMParams ms ++ if notTheEnd then "" else "'"
+segmentToStr :: Segment -> Bool -> Text
+segmentToStr (Segment st) notTheEnd =
+  segmentTypeToStr st <> if notTheEnd then "" else "'"
 
-segmentTypeToStr :: SegmentType -> String
+segmentTypeToStr :: SegmentType -> Text
 segmentTypeToStr (Static s) = s
-segmentTypeToStr (Cap s)    = "' + encodeURIComponent(" ++ s ++ ") + '"
+segmentTypeToStr (Cap s)    = "' + encodeURIComponent(" <> fst s <> ") + '"
 
-matlabGParams :: String -> [QueryArg] -> String
+matlabGParams :: Text -> [QueryArg] -> Text
 matlabGParams _ []     = ""
 matlabGParams _ [x]    = paramToStr x False
-matlabGParams s (x:xs) = paramToStr x True ++ s ++ matlabGParams s xs
+matlabGParams s (x:xs) = paramToStr x True <> s <> matlabGParams s xs
 
-matlabParams :: [QueryArg] -> String
+matlabParams :: [QueryArg] -> Text
 matlabParams = matlabGParams "&"
 
-matlabMParams :: [MatrixArg] -> String
-matlabMParams [] = ""
-matlabMParams xs = ";" ++ matlabGParams ";" xs
-
-paramToStr :: QueryArg -> Bool -> String
+paramToStr :: QueryArg -> Bool -> Text
 paramToStr qarg notTheEnd =
   case qarg ^. argType of
     Normal -> name
-           ++ "=' + encodeURIComponent("
-           ++ name
-           ++ if notTheEnd then ") + '" else ")"
-    Flag   -> name ++ "="
+           <> "=' + encodeURIComponent("
+           <> name
+           <> if notTheEnd then ") + '" else ")"
+    Flag   -> name <> "="
     List   -> name
-           ++ "[]=' + encodeURIComponent("
-           ++ name
-           ++ if notTheEnd then ") + '" else ")"
-  where name = qarg ^. argName
+           <> "[]=' + encodeURIComponent("
+           <> name
+           <> if notTheEnd then ") + '" else ")"
+  where (name,_)  = qarg ^. argName

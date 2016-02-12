@@ -57,79 +57,80 @@
 -- /Note/: The Angular generators take an additional type of options,
 -- namely 'AngularOptions', to let you tweak aspects of the code generation
 -- that are specific to /Angular.js/.
-module Servant.Matlab
-  ( -- * Generating javascript code from an API type
-    matlabForAPI
-  , writeMatlabForAPI
-  , MatlabGenerator
+module Servant.Matlab where
+-- module Servant.Matlab
+--   ( -- * Generating javascript code from an API type
+--     matlabForAPI
+--   , writeMatlabForAPI
+--   , MatlabGenerator
 
-  , -- * Options common to all generators
-    CommonGeneratorOptions
-  , defCommonGeneratorOptions
+--   , -- * Options common to all generators
+--     CommonGeneratorOptions
+--   , defCommonGeneratorOptions
 
-  , -- * Function renamers
-    concatCase
-  , snakeCase
-  , camelCase
+--   , -- * Function renamers
+--     concatCase
+--   , snakeCase
+--   , camelCase
 
-  , -- * Misc.
-    listFromAPI
-  , matlab
-  , GenerateList(..)
-  ) where
+--   , -- * Misc.
+--     listFromAPI
+--   , matlab
+--   , GenerateList(..)
+--   ) where
 
-import           Data.Bool               (bool)
-import           Data.Proxy
-import           Servant.Foreign
-import           Servant.Matlab.Internal
-import           System.Directory        (createDirectory)
-import           System.FilePath         ((</>))
+-- import           Data.Bool               (bool)
+-- import           Data.Proxy
+-- import           Servant.Foreign
+-- import           Servant.Matlab.Internal
+-- import           System.Directory        (createDirectory)
+-- import           System.FilePath         ((</>))
 
--- | Generate the data necessary to generate javascript code
---   for all the endpoints of an API, as ':<|>'-separated values
---   of type 'AjaxReq'.
-matlab :: HasForeign layout => Proxy layout -> Foreign layout
-matlab p = foreignFor p defReq
+-- -- | Generate the data necessary to generate javascript code
+-- --   for all the endpoints of an API, as ':<|>'-separated values
+-- --   of type 'AjaxReq'.
+-- matlab :: HasForeign layout => Proxy layout -> Foreign layout
+-- matlab p = foreignFor p defReq
 
--- | Directly generate all the javascript functions for your API
---   from a 'Proxy' for your API type. You can then write it to
---   a file or integrate it in a page, for example.
-matlabForAPI :: (HasForeign api, GenerateList (Foreign api))
-             => Proxy api
-                -- ^ proxy for your API type
-             -> MatlabGenerator
-                -- ^ matlab code generator to use
-             -> [(String, String)]
-                -- ^ a string that you can embed in your pages or write to a file
-matlabForAPI p gen = gen (listFromAPI p)
+-- -- | Directly generate all the javascript functions for your API
+-- --   from a 'Proxy' for your API type. You can then write it to
+-- --   a file or integrate it in a page, for example.
+-- matlabForAPI :: (HasForeign api, Servant.Matlab.GenerateList (Foreign api))
+--              => Proxy api
+--                 -- ^ proxy for your API type
+--              -> MatlabGenerator
+--                 -- ^ matlab code generator to use
+--              -> [(String, String)]
+--                 -- ^ a string that you can embed in your pages or write to a file
+-- matlabForAPI p gen = gen (Servant.Matlab.listFromAPI p)
 
--- | Directly generate all the javascript functions for your API
---   from a 'Proxy' for your API type using the given generator
---   and write the resulting code to a file at the given path.
-writeMatlabForAPI :: (HasForeign api, GenerateList (Foreign api))
-                  => Proxy api
-                        -- ^ proxy for your API type
-                     -> MatlabGenerator
-                        -- ^ matlab code generator to use
-                     -> FilePath
-                        -- ^ path to the file you want to write the resulting matlab code into
-              -> IO ()
-writeMatlabForAPI p gen fp = do
-  mapM_ (\(f,c) -> writeFile (fp </> f) c) (matlabForAPI p gen)
+-- -- | Directly generate all the javascript functions for your API
+-- --   from a 'Proxy' for your API type using the given generator
+-- --   and write the resulting code to a file at the given path.
+-- writeMatlabForAPI :: (HasForeign api, Servant.Matlab.GenerateList (Foreign api))
+--                   => Proxy api
+--                         -- ^ proxy for your API type
+--                      -> MatlabGenerator
+--                         -- ^ matlab code generator to use
+--                      -> FilePath
+--                         -- ^ path to the file you want to write the resulting matlab code into
+--               -> IO ()
+-- writeMatlabForAPI p gen fp = do
+--   mapM_ (\(f,c) -> writeFile (fp </> f) c) (matlabForAPI p gen)
 
--- | Utility class used by 'matlabForAPI' which computes
---   the data needed to generate a function for each endpoint
---   and hands it all back in a list.
-class GenerateList reqs where
-  generateList :: reqs -> [AjaxReq]
+-- -- | Utility class used by 'matlabForAPI' which computes
+-- --   the data needed to generate a function for each endpoint
+-- --   and hands it all back in a list.
+-- class GenerateList reqs where
+--   generateList :: reqs -> [AjaxReq]
 
-instance GenerateList AjaxReq where
-  generateList r = [r]
+-- instance Servant.Matlab.GenerateList AjaxReq where
+--   generateList r = [r]
 
-instance (GenerateList start, GenerateList rest) => GenerateList (start :<|> rest) where
-  generateList (start :<|> rest) = (generateList start) ++ (generateList rest)
+-- instance (Servant.Matlab.GenerateList start, Servant.Matlab.GenerateList rest) => Servant.Matlab.GenerateList (start :<|> rest) where
+--   generateList (start :<|> rest) = (Servant.Matlab.generateList start) ++ (Servant.Matlab.generateList rest)
 
--- | Generate the necessary data for JS codegen as a list, each 'AjaxReq'
---   describing one endpoint from your API type.
-listFromAPI :: (HasForeign api, GenerateList (Foreign api)) => Proxy api -> [AjaxReq]
-listFromAPI p = generateList (matlab p)
+-- -- | Generate the necessary data for JS codegen as a list, each 'AjaxReq'
+-- --   describing one endpoint from your API type.
+-- listFromAPI :: (HasForeign api todo, Servant.Matlab.GenerateList (Foreign api)) => Proxy api -> [AjaxReq]
+-- listFromAPI p = Servant.Matlab.generateList (matlab p)
